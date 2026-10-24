@@ -40,7 +40,7 @@
 ### C. UI 컴포넌트 (`src/components/`)
 | 파일 경로 | 줄 수 | 핵심 역할 및 UI 기능 |
 | :--- | :---: | :--- |
-| [src/App.tsx](file:///C:/AntigravityWorkspace/pd2s/src/App.tsx) | 390 | 전체 상태 오케스트레이션, 좌/우 완전 독립 스크롤 2-Column 반응형 레이아웃, 초기 마운트 시 `getStoredWatchlist()` 즉시 동기화 바인딩. |
+| [src/App.tsx](file:///C:/AntigravityWorkspace/pd2s/src/App.tsx) | 450 | 전체 상태 오케스트레이션, 옵션 B 탭 분리 레이아웃(`leftTab`: 'runes' 시세표 vs 'custom' 추적 보드), 신규 아이템 추가 시 자동 탭 전환, 좌/우 완전 독립 스크롤. |
 | [src/components/ApiKeySetupModal.tsx](file:///C:/AntigravityWorkspace/pd2s/src/components/ApiKeySetupModal.tsx) | 107 | 최초 실행 시 API Key 등록 안내 모달. 무료 발급 링크 안내 및 본인 PC 로컬 스토리지에 1회 영구 저장. |
 | [src/components/HeaderBar.tsx](file:///C:/AntigravityWorkspace/pd2s/src/components/HeaderBar.tsx) | 189 | 상단 고정 바. 소프트코어(SC)/하드코어(HC) 전환, 시즌 14(10/23~) 순수 데이터 필터 토글, `+ 추적 아이템 추가` 버튼, 동기화/스냅샷 버튼, API Key 설정 모달 트리거. |
 | [src/components/CustomWatchlistBoard.tsx](file:///C:/AntigravityWorkspace/pd2s/src/components/CustomWatchlistBoard.tsx) | 242 | 사용자가 등록한 세부 조건 아이템(예: 샤코 +3 올스킬 / 2소켓) 카드 보드. `shrink-0` 적용으로 flex 레이아웃 압축 방지. 설정된 스탯/소켓/타락 배지, 추정 시세(HR), 현재 최저가(Ask), 판매중/거래완료 건수 및 최다 거래 수단 표시. |

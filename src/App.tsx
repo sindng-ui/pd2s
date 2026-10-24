@@ -16,6 +16,7 @@ import {
   recordCustomSnapshotApi,
 } from './services/marketApi';
 import { getStoredApiKey, getStoredWatchlist } from './services/storageService';
+import { Sparkles, SlidersHorizontal, Plus } from 'lucide-react';
 import { useMarketWorker } from './workers/useMarketWorker';
 import { HeaderBar } from './components/HeaderBar';
 import { RuneMatrixTable } from './components/RuneMatrixTable';
@@ -47,6 +48,7 @@ export function App() {
 
   // 현재 우측 상세 패널에 선택된 타겟 (하이룬 baseCode 또는 커스텀 아이템 id)
   const [selectedId, setSelectedId] = useState<string>('custom-shako-3sk-2os');
+  const [leftTab, setLeftTab] = useState<'runes' | 'custom'>('runes');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<WatchItemConfig | null>(null);
 
@@ -216,6 +218,7 @@ export function App() {
         // 상태 갱신
         setWatchlist([...res.items]);
         setSelectedId(res.added.id);
+        setLeftTab('custom'); // 신규 등록 시 추적 아이템 탭으로 자동 전환하여 즉시 확인
         // 비동기 분석은 백그라운드로 안전하게 수행 (오류가 나도 목록 반영은 유지)
         loadAndAnalyzeWatchItem(res.added, realm, runePriceMapRef.current).catch((err) => {
           console.error('[loadAndAnalyzeWatchItem error]', err);
@@ -308,39 +311,97 @@ export function App() {
       <main className="mx-auto flex-1 w-full max-w-[1600px] overflow-hidden px-4 py-3">
         <div className="grid h-full grid-cols-1 gap-5 lg:grid-cols-12">
           {/* 좌측 컬럼 (7/12): 독립 세로 스크롤 */}
-          <div className="h-full overflow-y-auto pr-1 flex flex-col gap-5 lg:col-span-7">
-            {/* 1) 내 커스텀 세부 조건 추적 보드 (+ 샤코 3스킬 2소켓 등) */}
-            <CustomWatchlistBoard
-              watchlist={watchlist}
-              analyzedMap={analyzedMap}
-              loadingMap={loadingMap}
-              selectedId={activeWatchConfig.id}
-              onSelectWatchItem={handleSelectWatchItem}
-              onRefreshSingleItem={(item) =>
-                loadAndAnalyzeWatchItem(item, realm, runePriceMapRef.current)
-              }
-              onDeleteWatchItem={handleDeleteWatchItem}
-              onEditWatchItem={(item) => {
-                setEditingItem(item);
-                setIsAddModalOpen(true);
-              }}
-              onOpenAddModal={() => {
-                setEditingItem(null);
-                setIsAddModalOpen(true);
-              }}
-            />
+          <div className="h-full overflow-y-auto pr-1 flex flex-col gap-4 lg:col-span-7">
+            {/* 상단 탭 네비게이션 바 (옵션 B: 하이룬 시세 vs 커스텀 추적 탭 분리) */}
+            <div className="shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-gray-800 pb-2.5">
+              <div className="flex items-center gap-1.5 rounded-xl border border-gray-800 bg-[#14121a] p-1 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setLeftTab('runes')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold transition ${
+                    leftTab === 'runes'
+                      ? 'bg-amber-500 text-gray-950 shadow'
+                      : 'text-gray-400 hover:bg-gray-800/60 hover:text-gray-200'
+                  }`}
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>하이룬 & 화폐 시세표</span>
+                </button>
 
-            {/* 2) 하이룬 (Zod ~ Lem) & 주요 화폐 실시간 시세표 */}
-            <RuneMatrixTable
-              items={overviewItems}
-              analyzedMap={analyzedMap}
-              selectedId={activeWatchConfig.id}
-              onSelectRune={handleSelectRuneOrCurrency}
-              seasonOnly={realm.seasonOnly}
-            />
+                <button
+                  type="button"
+                  onClick={() => setLeftTab('custom')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold transition ${
+                    leftTab === 'custom'
+                      ? 'bg-amber-500 text-gray-950 shadow'
+                      : 'text-gray-400 hover:bg-gray-800/60 hover:text-gray-200'
+                  }`}
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  <span>내 커스텀 추적 아이템</span>
+                  <span
+                    className={`ml-1 rounded-full px-1.5 py-0.2 text-[10px] font-extrabold ${
+                      leftTab === 'custom'
+                        ? 'bg-gray-950 text-amber-300'
+                        : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                    }`}
+                  >
+                    {watchlist.length}
+                  </span>
+                </button>
+              </div>
 
-            {/* 3) 실시간 룬 쪼개기(Break) & WSS 환산 계산기 */}
-            <RuneBreakCalculator runePriceMap={runePriceMap} />
+              {leftTab === 'runes' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingItem(null);
+                    setIsAddModalOpen(true);
+                  }}
+                  className="flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-300 transition hover:bg-amber-500/20"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  + 새 추적 아이템
+                </button>
+              )}
+            </div>
+
+            {/* 탭 1: 하이룬 (Zod ~ Lem) 시세표 & 룬 쪼개기 계산기 */}
+            {leftTab === 'runes' && (
+              <>
+                <RuneMatrixTable
+                  items={overviewItems}
+                  analyzedMap={analyzedMap}
+                  selectedId={activeWatchConfig.id}
+                  onSelectRune={handleSelectRuneOrCurrency}
+                  seasonOnly={realm.seasonOnly}
+                />
+                <RuneBreakCalculator runePriceMap={runePriceMap} />
+              </>
+            )}
+
+            {/* 탭 2: 내 커스텀 세부 조건 추적 보드 */}
+            {leftTab === 'custom' && (
+              <CustomWatchlistBoard
+                watchlist={watchlist}
+                analyzedMap={analyzedMap}
+                loadingMap={loadingMap}
+                selectedId={activeWatchConfig.id}
+                onSelectWatchItem={handleSelectWatchItem}
+                onRefreshSingleItem={(item) =>
+                  loadAndAnalyzeWatchItem(item, realm, runePriceMapRef.current)
+                }
+                onDeleteWatchItem={handleDeleteWatchItem}
+                onEditWatchItem={(item) => {
+                  setEditingItem(item);
+                  setIsAddModalOpen(true);
+                }}
+                onOpenAddModal={() => {
+                  setEditingItem(null);
+                  setIsAddModalOpen(true);
+                }}
+              />
+            )}
           </div>
 
           {/* 우측 컬럼 (5/12): 독립 세로 스크롤 */}
