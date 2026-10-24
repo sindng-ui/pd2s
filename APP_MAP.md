@@ -22,6 +22,7 @@
 | [src-tauri/src/main.rs](file:///C:/AntigravityWorkspace/pd2s/src-tauri/src/main.rs) | 12 | Tauri 네이티브 윈도우 앱 진입점 (`windows_subsystem = "windows"`로 터미널 콘솔창 숨김). |
 | [src/services/storageService.ts](file:///C:/AntigravityWorkspace/pd2s/src/services/storageService.ts) | 126 | 사용자 PC 로컬 저장소(LocalStorage)에 API Key, 관심 목록, 일별 스냅샷, 거래 완료 로그 영구 저장/로드.<br>- `getStoredApiKey()`, `saveStoredApiKey(key)`<br>- `getStoredWatchlist()`, `saveStoredWatchlist(items)`<br>- `getStoredSnapshots()`, `appendStoredSnapshot(record)`<br>- `getStoredSoldHistoryMap()`, `mergeStoredSoldListings(watchKey, items)` |
 | [src/services/marketApi.ts](file:///C:/AntigravityWorkspace/pd2s/src/services/marketApi.ts) | 391 | Node 서버 없이 `pd2trader.com` REST & GraphQL API로 직접 통신.<br>- `fetchOverviewApi(isLadder, isHardcore)`<br>- `fetchWatchlistApi()`, `addWatchItemApi()`, `deleteWatchItemApi()`<br>- `fetchItemListingsAndHistoryApi()`<br>- `recordCustomSnapshotApi()`<br>- `searchCatalogAutocompleteApi(query)` |
+| [README.md](file:///C:/AntigravityWorkspace/pd2s/README.md) | 105 | GitHub 방문자를 위한 공식 한국어 프로젝트 소개서. 핵심 기능 5종, 캡처 이미지, 보안 안전성(이상한 곳 아님), 무료 API Key 발급 안내, ZIP 다운로드 안내. |
 | [.gitignore](file:///C:/AntigravityWorkspace/pd2s/.gitignore) | 33 | Git 제외 파일 설정. `node_modules/`, `src-tauri/target/`, 빌드 산출물(`dist/`), 로컬 데이터 제외 처리. |
 
 ---
@@ -61,3 +62,12 @@
 | [src/App.test.tsx](file:///C:/AntigravityWorkspace/pd2s/src/App.test.tsx) | 전체 App 통합 테스트: 모달 열기 -> 새 아이템 등록 -> 좌측 카드 보드 및 우측 상세 패널 즉시 렌더링 검증. (1 test passed) |
 | [scratch/puppeteer_e2e.mjs](file:///C:/AntigravityWorkspace/pd2s/scratch/puppeteer_e2e.mjs) | 실제 브라우저(Headless Chrome) 자동 제어 E2E 테스트. 브라우저 렌더링, 모달 열기, 아이템 추가, 좌측 카드 렌더링 및 스크린샷 캡처 자동 검증. |
 | [docs/unit_test_results.txt](file:///C:/AntigravityWorkspace/pd2s/docs/unit_test_results.txt) | 전체 단위 테스트 및 E2E 브라우저 검증 결과 보고서. |
+
+---
+
+### E. CI/CD 및 자동 배포 파이프라인
+| 파일 경로 | 줄 수 | 핵심 역할 및 기능 |
+| :--- | :---: | :--- |
+| [.github/workflows/release.yml](file:///C:/AntigravityWorkspace/pd2s/.github/workflows/release.yml) | 110 | GitHub Actions 자동 릴리즈 워크플로우. `package.json`의 버전 변경 감지 ➡️ Git Tag(`vX.Y.Z`) 자동 발행 ➡️ Tauri 윈도우 빌드 ➡️ `.exe` 파일들을 브라우저 차단 방지용 `.zip`으로 압축 ➡️ GitHub Release 생성 및 첨부파일 자동 업로드. |
+| [scripts/sync-version.mjs](file:///C:/AntigravityWorkspace/pd2s/scripts/sync-version.mjs) | 43 | 단일 버전 동기화 스크립트. `package.json`의 버전을 읽어 `src-tauri/tauri.conf.json`과 `src-tauri/Cargo.toml`의 버전을 자동으로 일치시킴 (`npm run version:sync` 또는 빌드 전 자동 실행). |
+| [docs/github_release_plan.md](file:///C:/AntigravityWorkspace/pd2s/docs/github_release_plan.md) | 48 | GitHub 자동 태그 & ZIP 압축 릴리즈 CI/CD 아키텍처 문서. |
