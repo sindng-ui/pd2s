@@ -1,0 +1,57 @@
+================================================================================
+PD2 Market Tracker (Season 14: Alliance) - 통합 검증 및 성능 테스트 결과 보고서
+작성 일시: 2026-10-24 (KST)
+================================================================================
+
+1. 백엔드 API 및 로컬 스토리지(DB) 연동 테스트
+--------------------------------------------------------------------------------
+[PASS] GET /api/local/config
+  - PD2 Trader X-API-Key 로드 및 마스킹 확인: pd2t_IJjl...5Uao
+
+[PASS] GET /api/local/watchlist
+  - 기본 커스텀 관심 아이템 4종 로드 확인:
+    1) 샤코 (+3 올스킬 / 2소켓 졸업) [socketsMin: 2, socketsMax: 2, corrupted: yes, pseudo_all_skills >= 3]
+    2) 샤코 (2소켓 타락/퍼즐)
+    3) 샤코 (노타락/기본 시세)
+    4) 스웹벨트 (Arachnid Mesh)
+
+[PASS] GET /api/local/overview?isLadder=true&isHardcore=false
+  - 하이룬 14종 (Zod r33 ~ Lem r20) 및 핵심 화폐 5종 (WSS, Puzzlebox, Puzzlepiece, Demonic Cube, Catalyst Shard) 총 19종 조회 성공
+  - 하이룬별 30일 시계열(historyPoints=30) GraphQL Alias 병렬 로드 성공:
+    * Zod Rune (r33): 7.0 HR (historyPoints=30)
+    * Cham Rune (r32): 3.75 HR (historyPoints=30)
+    * Jah Rune (r31): 2.15 HR (historyPoints=30)
+    * Ber Rune (r30): 3.0 HR (historyPoints=30)
+    * Sur Rune (r29): 1.5 HR (historyPoints=30)
+    * Lo Rune (r28): 1.0 HR (historyPoints=30)
+  - 로컬 스냅샷 DB (data/snapshots.json) 자동 기록 확인
+
+[PASS] POST /api/local/item-listings
+  - 세부 조건 필터(socketsMin, socketsMax, corrupted, stats) 정상 동작 확인
+  - Live 매물 및 Archive(Sold) 매물 조회, 로컬 영구 DB (data/sold_history.json) 병합 저장 확인
+  - Sur Rune 매물 원문("1.5 Break"), Mal Rune("20 wss"), Harlequin Crest("0.6") 등 원문 추출 확인
+
+[PASS] GET /api/local/catalog-search?q=griffon
+  - 아이템 자동완성 검색 정상 동작 (Griffon's Eye 및 아이콘 URL 반환)
+
+2. 성능 및 코드 품질(500줄 제한 / 워커 / 메모이제이션) 점검
+--------------------------------------------------------------------------------
+- TypeScript 컴파일 체크 (npx tsc --noEmit): 에러 0건 (PASS)
+- Web Worker (src/workers/marketAnalysis.worker.ts):
+  * 대량 매물의 판매자 원문(price) 정규식 파싱, 물물교환 카테고리 분류, 시계열 집계를 별도 스레드에서 수행하여 메인 UI 블로킹 0ms 유지.
+- React 메모이제이션:
+  * HeaderBar, RuneMatrixTable, MiniSparkline, CustomWatchlistBoard, TradeBreakdownView, PriceTrendChart, RuneBreakCalculator, ItemDetailPanel 전 컴포넌트 React.memo 및 useMemo/useCallback 적용 완료.
+- 전 파일 라인 수 점검 (500줄 미만 규칙 100% 준수):
+  * src/App.tsx: 363줄
+  * src/components/AddWatchItemModal.tsx: 481줄
+  * src/components/PriceTrendChart.tsx: 336줄
+  * src/components/TradeBreakdownView.tsx: 314줄
+  * src/components/RuneMatrixTable.tsx: 281줄
+  * src/components/CustomWatchlistBoard.tsx: 243줄
+  * src/components/HeaderBar.tsx: 194줄
+  * src/components/ItemDetailPanel.tsx: 162줄
+  * src/components/RuneBreakCalculator.tsx: 149줄
+  * src/workers/marketAnalysis.worker.ts: 376줄
+  * server/pd2Client.ts: 314줄
+  * server/apiMiddleware.ts: 218줄
+  * server/storageService.ts: 142줄

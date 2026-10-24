@@ -1,0 +1,46 @@
+[
+  {
+    "id": "custom-1792828138207",
+    "label": "Mang Song's Lesson (커스텀 조건)",
+    "itemName": "Mang Song's Lesson",
+    "baseCode": "mang_song_s_lesson",
+    "category": "custom",
+    "iconUrl": "https://pd2trader.com/assets/items/inv8wsu.png",
+    "socketsMin": 5,
+    "socketsMax": 6,
+    "corrupted": "any",
+    "ethereal": "any",
+    "stats": [
+      {
+        "kind": "pseudo",
+        "key": "pseudo_all_skills",
+        "label": "+ 모든 스킬 합계 (Total All Skills)",
+        "min": 3,
+        "enabled": false
+      }
+    ],
+    "createdAt": "2026-10-24T07:49:12.640Z"
+  },
+  {
+    "id": "custom-1792828081308",
+    "label": "샤코 (+3 올스킬 / 2소켓)",
+    "itemName": "Harlequin Crest",
+    "baseCode": "harlequin_crest",
+    "category": "custom",
+    "iconUrl": "https://pd2trader.com/assets/items/invcap.png",
+    "socketsMin": 2,
+    "socketsMax": 2,
+    "corrupted": "any",
+    "ethereal": "no",
+    "stats": [
+      {
+        "kind": "pseudo",
+        "key": "pseudo_all_skills",
+        "label": "+ 모든 스킬 합계 (Total All Skills)",
+        "min": 3,
+        "enabled": true
+      }
+    ],
+    "createdAt": "2026-10-24T07:49:29.323Z"
+  }
+]
