@@ -14,13 +14,14 @@ import {
   deleteWatchItemApi,
   fetchItemListingsAndHistoryApi,
   recordCustomSnapshotApi,
-  fetchConfigApi,
 } from './services/marketApi';
+import { getStoredApiKey, getStoredWatchlist } from './services/storageService';
 import { useMarketWorker } from './workers/useMarketWorker';
 import { HeaderBar } from './components/HeaderBar';
 import { RuneMatrixTable } from './components/RuneMatrixTable';
 import { CustomWatchlistBoard } from './components/CustomWatchlistBoard';
 import { AddWatchItemModal } from './components/AddWatchItemModal';
+import { ApiKeySetupModal } from './components/ApiKeySetupModal';
 import { ItemDetailPanel } from './components/ItemDetailPanel';
 import { RuneBreakCalculator } from './components/RuneBreakCalculator';
 
@@ -32,7 +33,9 @@ export function App() {
   });
 
   const [overviewItems, setOverviewItems] = useState<EconomyItemSummary[]>([]);
-  const [watchlist, setWatchlist] = useState<WatchItemConfig[]>([]);
+  const [watchlist, setWatchlist] = useState<WatchItemConfig[]>(() => {
+    return typeof window !== 'undefined' ? getStoredWatchlist() : [];
+  });
   const [snapshots, setSnapshots] = useState<LocalSnapshotRecord[]>([]);
   const [analyzedMap, setAnalyzedMap] = useState<Record<string, AnalyzedItemResult>>({});
   const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
@@ -40,6 +43,7 @@ export function App() {
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [maskedKey, setMaskedKey] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
 
   // 현재 우측 상세 패널에 선택된 타겟 (하이룬 baseCode 또는 커스텀 아이템 id)
   const [selectedId, setSelectedId] = useState<string>('custom-shako-3sk-2os');
@@ -113,16 +117,22 @@ export function App() {
   // 전체 데이터 초기 로드 및 새로고침
   const loadAllData = useCallback(
     async (targetRealm: RealmMode) => {
+      const storedKey = getStoredApiKey();
+      if (!storedKey) {
+        setMaskedKey('');
+        setIsKeyModalOpen(true);
+        return;
+      }
+
+      setMaskedKey(`${storedKey.slice(0, 9)}...${storedKey.slice(-4)}`);
       setIsOverviewLoading(true);
       setErrorMsg(null);
       try {
-        const [cfg, overviewRes, savedWatchlist] = await Promise.all([
-          fetchConfigApi(),
+        const [overviewRes, savedWatchlist] = await Promise.all([
           fetchOverviewApi(targetRealm.isLadder, targetRealm.isHardcore),
           fetchWatchlistApi(),
         ]);
 
-        setMaskedKey(cfg.maskedKey);
         setOverviewItems(overviewRes.items);
         setSnapshots(overviewRes.snapshots);
         setWatchlist(savedWatchlist);
@@ -201,10 +211,19 @@ export function App() {
   // + 커스텀 아이템 저장/수정 핸들러
   const handleSaveWatchItem = useCallback(
     async (newItemData: Omit<WatchItemConfig, 'id' | 'createdAt'> & { id?: string }) => {
-      const res = await addWatchItemApi(newItemData);
-      setWatchlist(res.items);
-      setSelectedId(res.added.id);
-      await loadAndAnalyzeWatchItem(res.added, realm, runePriceMapRef.current);
+      try {
+        const res = await addWatchItemApi(newItemData);
+        // 상태 갱신
+        setWatchlist([...res.items]);
+        setSelectedId(res.added.id);
+        // 비동기 분석은 백그라운드로 안전하게 수행 (오류가 나도 목록 반영은 유지)
+        loadAndAnalyzeWatchItem(res.added, realm, runePriceMapRef.current).catch((err) => {
+          console.error('[loadAndAnalyzeWatchItem error]', err);
+        });
+      } catch (err: any) {
+        console.error('[handleSaveWatchItem error]', err);
+        setErrorMsg(err?.message || '아이템 저장에 실패했습니다.');
+      }
     },
     [loadAndAnalyzeWatchItem, realm]
   );
@@ -259,7 +278,7 @@ export function App() {
   }, [overviewItems, activeWatchConfig]);
 
   return (
-    <div className="min-h-screen bg-[#0c0b0e] text-gray-100 pb-12">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#0c0b0e] text-gray-100">
       {/* 상단 고정 헤더 */}
       <HeaderBar
         realm={realm}
@@ -273,58 +292,59 @@ export function App() {
         }}
         maskedKey={maskedKey}
         onKeyUpdated={() => loadAllData(realm)}
+        onOpenKeyModal={() => setIsKeyModalOpen(true)}
       />
 
       {/* 에러 배너 */}
       {errorMsg && (
-        <div className="mx-auto mt-3 max-w-[1600px] px-4">
-          <div className="rounded-lg border border-rose-500/40 bg-rose-500/15 px-4 py-2.5 text-xs text-rose-200">
+        <div className="mx-auto mt-2 max-w-[1600px] px-4 w-full">
+          <div className="rounded-lg border border-rose-500/40 bg-rose-500/15 px-4 py-2 text-xs text-rose-200">
             ⚠️ {errorMsg}
           </div>
         </div>
       )}
 
-      {/* 메인 2-Column 그리드 레이아웃 */}
-      <main className="mx-auto mt-4 grid max-w-[1600px] grid-cols-1 gap-5 px-4 lg:grid-cols-12">
-        {/* 좌측 컬럼 (7/12): 커스텀 관심 아이템 보드 + 하이룬/화폐 시세표 + 룬 쪼개기 계산기 */}
-        <div className="flex flex-col gap-5 lg:col-span-7">
-          {/* 1) 내 커스텀 세부 조건 추적 보드 (+ 샤코 3스킬 2소켓 등) */}
-          <CustomWatchlistBoard
-            watchlist={watchlist}
-            analyzedMap={analyzedMap}
-            loadingMap={loadingMap}
-            selectedId={activeWatchConfig.id}
-            onSelectWatchItem={handleSelectWatchItem}
-            onRefreshSingleItem={(item) =>
-              loadAndAnalyzeWatchItem(item, realm, runePriceMapRef.current)
-            }
-            onDeleteWatchItem={handleDeleteWatchItem}
-            onEditWatchItem={(item) => {
-              setEditingItem(item);
-              setIsAddModalOpen(true);
-            }}
-            onOpenAddModal={() => {
-              setEditingItem(null);
-              setIsAddModalOpen(true);
-            }}
-          />
+      {/* 메인 2-Column 완벽 분리 스크롤 레이아웃 */}
+      <main className="mx-auto flex-1 w-full max-w-[1600px] overflow-hidden px-4 py-3">
+        <div className="grid h-full grid-cols-1 gap-5 lg:grid-cols-12">
+          {/* 좌측 컬럼 (7/12): 독립 세로 스크롤 */}
+          <div className="h-full overflow-y-auto pr-1 flex flex-col gap-5 lg:col-span-7">
+            {/* 1) 내 커스텀 세부 조건 추적 보드 (+ 샤코 3스킬 2소켓 등) */}
+            <CustomWatchlistBoard
+              watchlist={watchlist}
+              analyzedMap={analyzedMap}
+              loadingMap={loadingMap}
+              selectedId={activeWatchConfig.id}
+              onSelectWatchItem={handleSelectWatchItem}
+              onRefreshSingleItem={(item) =>
+                loadAndAnalyzeWatchItem(item, realm, runePriceMapRef.current)
+              }
+              onDeleteWatchItem={handleDeleteWatchItem}
+              onEditWatchItem={(item) => {
+                setEditingItem(item);
+                setIsAddModalOpen(true);
+              }}
+              onOpenAddModal={() => {
+                setEditingItem(null);
+                setIsAddModalOpen(true);
+              }}
+            />
 
-          {/* 2) 하이룬 (Zod ~ Lem) & 주요 화폐 실시간 시세표 */}
-          <RuneMatrixTable
-            items={overviewItems}
-            analyzedMap={analyzedMap}
-            selectedId={activeWatchConfig.id}
-            onSelectRune={handleSelectRuneOrCurrency}
-            seasonOnly={realm.seasonOnly}
-          />
+            {/* 2) 하이룬 (Zod ~ Lem) & 주요 화폐 실시간 시세표 */}
+            <RuneMatrixTable
+              items={overviewItems}
+              analyzedMap={analyzedMap}
+              selectedId={activeWatchConfig.id}
+              onSelectRune={handleSelectRuneOrCurrency}
+              seasonOnly={realm.seasonOnly}
+            />
 
-          {/* 3) 실시간 룬 쪼개기(Break) & WSS 환산 계산기 */}
-          <RuneBreakCalculator runePriceMap={runePriceMap} />
-        </div>
+            {/* 3) 실시간 룬 쪼개기(Break) & WSS 환산 계산기 */}
+            <RuneBreakCalculator runePriceMap={runePriceMap} />
+          </div>
 
-        {/* 우측 컬럼 (5/12): 선택된 룬/커스텀 아이템의 날짜별 시세 추이 차트 & 실제 거래 완료(Sold) 원문 분석 */}
-        <div className="lg:col-span-5">
-          <div className="sticky top-20">
+          {/* 우측 컬럼 (5/12): 독립 세로 스크롤 */}
+          <div className="h-full overflow-y-auto pr-1 lg:col-span-5">
             <ItemDetailPanel
               activeWatch={activeWatchConfig}
               analyzed={analyzedMap[activeWatchConfig.id]}
@@ -355,6 +375,16 @@ export function App() {
           setEditingItem(null);
         }}
         onSave={handleSaveWatchItem}
+      />
+
+      {/* 최초/수정용 API Key 설정 모달 */}
+      <ApiKeySetupModal
+        isOpen={isKeyModalOpen}
+        onClose={() => setIsKeyModalOpen(false)}
+        onSaved={(key) => {
+          setMaskedKey(`${key.slice(0, 9)}...${key.slice(-4)}`);
+          loadAllData(realm);
+        }}
       />
     </div>
   );

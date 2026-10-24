@@ -36,7 +36,7 @@ export const CustomWatchlistBoard: React.FC<CustomWatchlistBoardProps> = React.m
     onOpenAddModal,
   }) => {
     return (
-      <div className="rounded-xl border border-amber-500/25 bg-[#15131b] shadow-lg overflow-hidden">
+      <div className="shrink-0 rounded-xl border border-amber-500/25 bg-[#15131b] shadow-lg overflow-hidden">
         {/* 헤더 */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-800 bg-[#1c1824] px-4 py-3">
           <div className="flex items-center gap-2">

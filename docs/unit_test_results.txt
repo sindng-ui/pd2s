@@ -1,0 +1,49 @@
+======================================================================
+PD2 시세 트래커 - 단위 테스트 & 브라우저 자동화(E2E) 검증 결과서
+검증 일시: 2026-10-24 17:51
+======================================================================
+
+[1. Vitest 단위/통합 테스트 결과]
+- src/services/watchlist.test.ts (3 passed)
+  ✓ 기본 watchlist가 없을 때 DEFAULT_CUSTOM_WATCHLIST 4개를 반환해야 함
+  ✓ 신규 아이템을 addWatchItemApi로 추가하면 맨 앞에 추가되고 즉시 저장되어야 함
+  ✓ deleteWatchItemApi로 삭제하면 목록에서 제거되어야 함
+
+- src/components/AddWatchItemModal.test.tsx (1 passed)
+  ✓ 모달이 열렸을 때 기본 필드가 렌더링되고 제출 시 onSave 콜백이 호출되어야 함
+
+- src/App.test.tsx (1 passed)
+  ✓ 추적 아이템 추가 모달에서 등록하면 좌측 CustomWatchlistBoard에 즉시 카드가 렌더링되어야 함
+
+총 3개 테스트 파일 / 5개 테스트 케이스: 100% PASS
+
+----------------------------------------------------------------------
+[2. Puppeteer 실제 브라우저 자동 제어(E2E) 검증 결과]
+- 실행 URL: http://localhost:5173
+- 단계별 검증 절차:
+  1) 브라우저 헤드리스 실행 및 대시보드 마운트 확인
+  2) Flex-shrink 0 및 레이아웃 수정 후 CustomWatchlistBoard 정상 노출 확인
+  3) '+ 추적 아이템 추가' 버튼 자동 클릭
+  4) 모달 내 '★신규_직접추적_아이템★' 입력 폼 작성 및 제출 자동화
+  5) 좌측 보드 카드 목록에 등록된 아이템('★신규_직접추적_아이템★') 렌더링 여부 확인
+  6) 우측 상세 패널 자동 선택 및 시세 분석 렌더링 여부 확인
+- 결과:
+  ✓ Check result - Item found on page: true
+  ✓ === E2E Browser Control & UI Verification PASSED! ===
+- 캡처 이미지:
+  - scratch_after_fix_initial.png (수정 직후 정상 화면)
+  - scratch_modal_open.png (모달 열림 상태)
+  - scratch_after_add_success.png (추가 후 좌측 카드 즉시 반영 화면)
+
+----------------------------------------------------------------------
+[3. 근본 원인 분석 요약]
+- 원인: 좌측 컬럼에 적용된 'flex flex-col' 부모 컨테이너 내에서,
+  자식 요소인 'CustomWatchlistBoard'에 기본 flex-shrink: 1이 적용되어
+  하단 대형 테이블의 높이에 밀려 컨테이너의 높이가 2px로 압축(shrink)되고
+  overflow: hidden에 의해 내용물이 브라우저 렌더링에서 잘려 사라졌던 현상.
+- 해결:
+  - CustomWatchlistBoard 최상단에 `shrink-0` 적용
+  - RuneMatrixTable 및 RuneBreakCalculator에도 `shrink-0` 적용
+  - App.tsx 초기 state에서 `getStoredWatchlist()`로 즉시 동기화 마운트
+  - TradeBreakdownView 옵셔널 체이닝 방어 코드 보강
+======================================================================

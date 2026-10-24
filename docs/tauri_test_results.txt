@@ -1,0 +1,38 @@
+================================================================================
+Tauri 데스크탑 앱 (.exe) 전환 및 빌드 검증 결과
+작성 일시: 2026-10-24 (KST)
+================================================================================
+
+1. 네이티브 빌드 산출물 생성 확인
+--------------------------------------------------------------------------------
+- 단일 독립 실행 파일 (.exe):
+  * 경로: C:/AntigravityWorkspace/pd2s/src-tauri/target/debug/pd2-tracker.exe
+  * 크기: 약 7.4 MB (Node.js/Electron 불필요, 더블클릭 즉시 실행)
+- 윈도우 인스톨러 패키지 (.exe / .msi):
+  * 경로: C:/AntigravityWorkspace/pd2s/src-tauri/target/debug/bundle/nsis/pd2-tracker_0.1.0_x64-setup.exe
+  * 크기: 약 1.9 MB (NSIS 초경량 설치 번들)
+  * 경로: C:/AntigravityWorkspace/pd2s/src-tauri/target/debug/bundle/msi/pd2-tracker_0.1.0_x64_en-US.msi
+
+2. API Key 보안 & 로컬 영구 저장 구조 검증
+--------------------------------------------------------------------------------
+- [PASS] 최초 실행 시 ApiKeySetupModal 자동 표시 및 유효성 검사 (pd2t_ 형식)
+- [PASS] 사용자가 입력한 API Key는 본인 PC의 LocalStorage에만 영구 보관 (외부 노출 없음)
+- [PASS] 헤더 바의 키 아이콘(KeyRound)을 통해 마스킹 상태 확인 및 언제든 재설정 가능
+- [PASS] Node 서버를 거치지 않고 pd2trader.com REST & GraphQL 직접 통신 확인 (CORS 통과)
+
+3. 파일 줄 수 규칙 점검 (500줄 미만 100% 준수)
+--------------------------------------------------------------------------------
+- src/App.tsx: 382줄
+- src/components/AddWatchItemModal.tsx: 481줄
+- src/components/ApiKeySetupModal.tsx: 107줄
+- src/components/CustomWatchlistBoard.tsx: 243줄
+- src/components/HeaderBar.tsx: 189줄
+- src/components/ItemDetailPanel.tsx: 162줄
+- src/components/PriceTrendChart.tsx: 336줄
+- src/components/RuneBreakCalculator.tsx: 149줄
+- src/components/RuneMatrixTable.tsx: 281줄
+- src/components/TradeBreakdownView.tsx: 314줄
+- src/services/marketApi.ts: 391줄
+- src/services/storageService.ts: 126줄
+- src/workers/marketAnalysis.worker.ts: 376줄
+- src/workers/useMarketWorker.ts: 81줄

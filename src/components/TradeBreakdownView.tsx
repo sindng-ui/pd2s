@@ -31,7 +31,7 @@ export const TradeBreakdownView: React.FC<TradeBreakdownViewProps> = React.memo(
 
     const filteredListings = useMemo(() => {
       if (!analyzed) return [];
-      return analyzed.parsedListings.filter((item) => {
+      return (analyzed.parsedListings || []).filter((item) => {
         if (statusFilter !== 'all' && item.status !== statusFilter) return false;
         if (catFilter !== 'ALL' && item.barterCategory !== catFilter) return false;
         return true;
@@ -62,16 +62,16 @@ export const TradeBreakdownView: React.FC<TradeBreakdownViewProps> = React.memo(
               </h3>
             </div>
             <span className="text-[11px] text-gray-400">
-              총 {analyzed.parsedListings.length}건 표본 (완료 {analyzed.soldCount}건 / 판매중{' '}
-              {analyzed.liveCount}건)
+              총 {analyzed.parsedListings?.length || 0}건 표본 (완료 {analyzed.soldCount || 0}건 / 판매중{' '}
+              {analyzed.liveCount || 0}건)
             </span>
           </div>
 
           {/* 카테고리 비율 바 */}
-          {analyzed.barterBreakdown.length > 0 ? (
+          {(analyzed.barterBreakdown || []).length > 0 ? (
             <>
               <div className="mb-3 flex h-3 w-full overflow-hidden rounded-full bg-gray-900">
-                {analyzed.barterBreakdown.map((b) => {
+                {(analyzed.barterBreakdown || []).map((b) => {
                   const barColors: Record<BarterCategory, string> = {
                     PURE_HR: 'bg-amber-500',
                     WSS: 'bg-red-500',

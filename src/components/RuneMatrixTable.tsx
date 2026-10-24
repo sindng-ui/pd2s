@@ -82,7 +82,7 @@ export const RuneMatrixTable: React.FC<RuneMatrixTableProps> = React.memo(
     }, []);
 
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 shrink-0">
         {/* 1. 하이룬 (Lem ~ Zod) 시세 테이블 */}
         <div className="rounded-xl border border-amber-500/20 bg-[#15131b] shadow-lg overflow-hidden">
           <div className="flex items-center justify-between border-b border-gray-800/80 bg-[#1a1722] px-4 py-3">

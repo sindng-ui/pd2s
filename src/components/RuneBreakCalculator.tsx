@@ -64,7 +64,7 @@ export const RuneBreakCalculator: React.FC<RuneBreakCalculatorProps> = React.mem
     ];
 
     return (
-      <div className="rounded-xl border border-amber-500/20 bg-[#15131b] p-4">
+      <div className="shrink-0 rounded-xl border border-amber-500/20 bg-[#15131b] p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Calculator className="h-4 w-4 text-amber-400" />

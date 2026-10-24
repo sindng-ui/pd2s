@@ -11,7 +11,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { RealmMode } from '../types/market.types';
-import { updateConfigApiKey } from '../services/marketApi';
+import { saveStoredApiKey } from '../services/storageService';
 
 interface HeaderBarProps {
   realm: RealmMode;
@@ -22,6 +22,7 @@ interface HeaderBarProps {
   onOpenAddModal: () => void;
   maskedKey: string;
   onKeyUpdated: () => void;
+  onOpenKeyModal: () => void;
 }
 
 export const HeaderBar: React.FC<HeaderBarProps> = React.memo(
@@ -34,23 +35,18 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(
     onOpenAddModal,
     maskedKey,
     onKeyUpdated,
+    onOpenKeyModal,
   }) => {
     const [showKeyInput, setShowKeyInput] = useState(false);
     const [apiKeyVal, setApiKeyVal] = useState('');
-    const [savingKey, setSavingKey] = useState(false);
 
-    const handleSaveKey = async (e: React.FormEvent) => {
+    const handleSaveKey = (e: React.FormEvent) => {
       e.preventDefault();
       if (!apiKeyVal.trim()) return;
-      setSavingKey(true);
-      try {
-        await updateConfigApiKey(apiKeyVal.trim());
-        setShowKeyInput(false);
-        setApiKeyVal('');
-        onKeyUpdated();
-      } finally {
-        setSavingKey(false);
-      }
+      saveStoredApiKey(apiKeyVal.trim());
+      setShowKeyInput(false);
+      setApiKeyVal('');
+      onKeyUpdated();
     };
 
     const formattedTime = lastSyncedAt
@@ -150,15 +146,15 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(
               <span>{formattedTime}</span>
             </button>
 
-            {/* API Key 상태 */}
+            {/* API Key 상태 및 설정 버튼 */}
             <button
               type="button"
-              onClick={() => setShowKeyInput((v) => !v)}
+              onClick={onOpenKeyModal}
               className="flex items-center gap-1 rounded-lg border border-gray-800 bg-[#16141c] px-2.5 py-1.5 text-[11px] text-gray-400 hover:border-gray-700 hover:text-gray-200"
               title="PD2 Trader API Key 설정"
             >
               <KeyRound className="h-3 w-3 text-emerald-400" />
-              <span>{maskedKey || 'API Key'}</span>
+              <span>{maskedKey ? `Key: ${maskedKey}` : 'API Key 등록'}</span>
             </button>
           </div>
         </div>
@@ -179,7 +175,6 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(
             />
             <button
               type="submit"
-              disabled={savingKey}
               className="flex items-center gap-1 rounded bg-amber-600 px-3 py-1 font-medium text-white hover:bg-amber-500"
             >
               <CheckCircle2 className="h-3.5 w-3.5" />

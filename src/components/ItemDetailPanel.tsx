@@ -1,6 +1,7 @@
 // C:/AntigravityWorkspace/pd2s/src/components/ItemDetailPanel.tsx
 import React from 'react';
 import { RefreshCw, ExternalLink, Sparkles, ShieldCheck } from 'lucide-react';
+import { open } from '@tauri-apps/api/shell';
 import {
   AnalyzedItemResult,
   PriceHistoryPoint,
@@ -132,14 +133,20 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = React.memo(
                   />
                   매물 재분석
                 </button>
-                <a
-                  href={`https://www.projectdiablo2.com/market`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-center gap-1 text-[10px] text-gray-400 hover:text-amber-300"
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const url = 'https://www.projectdiablo2.com/market';
+                    try {
+                      await open(url);
+                    } catch {
+                      window.open(url, '_blank');
+                    }
+                  }}
+                  className="flex items-center justify-center gap-1 text-[10px] text-gray-400 hover:text-amber-300 transition cursor-pointer"
                 >
                   공식 마켓 열기 <ExternalLink className="h-2.5 w-2.5" />
-                </a>
+                </button>
               </div>
             </div>
           </div>

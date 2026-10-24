@@ -172,6 +172,8 @@ export const AddWatchItemModal: React.FC<AddWatchItemModalProps> = ({
         stats,
       });
       onClose();
+    } catch (err: any) {
+      console.error('[AddWatchItemModal submit error]', err);
     } finally {
       setSaving(false);
     }
