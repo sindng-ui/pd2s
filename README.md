@@ -78,7 +78,7 @@ PD2 공식 거래소 데이터를 조회하기 위해 공식 API Key가 딱 1번
 
 Node.js나 복잡한 개발 도구를 설치할 필요가 전혀 없는 **단일 윈도우 실행 프로그램**입니다.
 
-1. 우측의 **[Releases](https://github.com/dhth1/pd2s/releases)** 탭으로 이동합니다.
+1. **[최신 릴리즈 다운로드 페이지 (Releases)](https://github.com/sindng-ui/pd2s/releases/latest)** 로 이동합니다.
 2. 최신 버전의 ZIP 압축 파일을 다운로드합니다:
    - 📦 **무설치 포터블 버전**: `pd2-tracker-vX.Y.Z-portable-windows-x64.zip`  
      (압축 풀고 `pd2-tracker.exe`를 바로 더블클릭하면 즉시 실행)
