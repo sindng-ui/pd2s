@@ -42,7 +42,7 @@
   },
   "productName": "pd2-tracker",
   "mainBinaryName": "pd2-tracker",
-  "version": "1.0.1",
+  "version": "1.1.2",
   "identifier": "com.pd2tracker.app",
   "plugins": {},
   "app": {

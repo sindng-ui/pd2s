@@ -14,8 +14,11 @@ interface MobileHeaderProps {
 export const MobileHeader: React.FC<MobileHeaderProps> = React.memo(
   ({ realm, onChangeRealm, isLoading, onRefreshAll, onOpenAddModal }) => {
     return (
-      <header className="sticky top-0 z-30 border-b border-amber-500/20 bg-[#121017]/95 backdrop-blur-md px-3 py-2.5 md:hidden">
-        <div className="flex items-center justify-between gap-2">
+      <header className="sticky top-0 z-30 border-b border-amber-500/20 bg-[#121017] px-3 pb-2.5 md:hidden">
+        {/* 모바일 상단 시스템 상태바(Status Bar - 시계, 배터리 등) 침범 방지 안전 여백 */}
+        <div className="h-[max(env(safe-area-inset-top,0px),1.75rem)] w-full" aria-hidden="true" />
+
+        <div className="flex items-center justify-between gap-2 pt-1">
           {/* 좌측: 로고 + 시즌 14 태그 */}
           <div className="flex items-center gap-2 min-w-0">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-amber-500/40 bg-gradient-to-br from-amber-500/20 to-red-900/40">

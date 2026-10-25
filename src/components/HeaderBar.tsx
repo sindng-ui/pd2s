@@ -58,7 +58,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(
       : '동기화 대기중';
 
     return (
-      <header className="sticky top-0 z-30 border-b border-amber-500/20 bg-[#121017]/95 backdrop-blur-md">
+      <header className="sticky top-0 z-30 border-b border-amber-500/20 bg-[#121017]">
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3 px-4 py-3">
           {/* 브랜드 타이틀 & 시즌 14 배지 */}
           <div className="flex items-center gap-3">

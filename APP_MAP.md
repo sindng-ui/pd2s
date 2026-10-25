@@ -8,7 +8,7 @@
 - **목적**: Project Diablo 2 (Season 14: Alliance) 하이룬(Zod~Lem), 주요 화폐(WSS, 퍼즐박스 등), 그리고 사용자가 `+` 버튼으로 세부 조건(예: `샤코 +3 올스킬 / 2소켓`)을 지정해 등록한 커스텀 아이템의 **1) 실시간 HR 시세, 2) 실제 거래 완료(Sold) 및 활성 매물 물물교환 원문 분석, 3) 시즌 날짜별 시세 변동 추이**를 추적.
 - **실행 모드**:
   1. **Tauri 네이티브 단일 실행 파일 (.exe)**: Node.js 서버 필요 없이 유저가 바로 더블클릭 실행 가능 (`src-tauri/target/release/pd2-tracker.exe` 및 NSIS 설치 인스톨러)
-  2. **Android 모바일 앱 (.apk)**: 스마트폰에서 브라우저 또는 앱으로 언제 어디서나 시세표 및 거래 분석 확인 가능
+  2. **Android 모바일 앱 (.apk)**: 스마트폰에서 브라우저 또는 앱으로 언제 어디서나 시세표 및 거래 분석 확인 가능 (상태바 침범 방지 Safe Area 완벽 지원)
   3. **Vite 개발 서버 모드**: `npm run dev` (`http://localhost:5173`)
 - **API Key & 데이터 보관**: 외부 서버 없이 각 사용자의 **PC/모바일 로컬 저장소(LocalStorage)**에 안전하게 영구 보관 (100% Client-Side Direct Fetch).
 
@@ -19,6 +19,7 @@
 ### A. Tauri 데스크탑 & 모바일 코어 (`src-tauri/`) & 로컬 스토리지 서비스
 | 파일 경로 | 줄 수 | 핵심 역할 및 노출 인터페이스 |
 | :--- | :---: | :--- |
+| [index.html](file:///K:/Antigravity_Projects/gitbase/pd2s/index.html) | 12 | 진입점 HTML (`viewport-fit=cover` 적용으로 모바일 노치 및 상태바 안전 영역 활성화). |
 | [src-tauri/tauri.conf.json](file:///K:/Antigravity_Projects/gitbase/pd2s/src-tauri/tauri.conf.json) | 65 | Tauri 2.0 정식 설정 (모바일 및 데스크탑 창 설정, 번들 식별자 `com.pd2tracker.app`, v2 권한 및 플러그인 연동). |
 | [src-tauri/src/lib.rs](file:///K:/Antigravity_Projects/gitbase/pd2s/src-tauri/src/lib.rs) | 10 | Tauri 2.0 모바일/데스크탑 통합 진입점 (`#[tauri::mobile_entry_point]`, HTTP 및 Opener 플러그인 등록). |
 | [src-tauri/src/main.rs](file:///K:/Antigravity_Projects/gitbase/pd2s/src-tauri/src/main.rs) | 6 | 데스크탑 윈도우 실행 진입점 (`app_lib::run()` 호출). |
@@ -49,11 +50,12 @@
 | [src/App.tsx](file:///K:/Antigravity_Projects/gitbase/pd2s/src/App.tsx) | 422 | 전체 상태 오케스트레이션. `isMobile`에 따라 모바일/데스크탑 레이아웃 분기 오케스트레이션 (500줄 이하 슬림화). |
 | [src/components/DesktopLayout.tsx](file:///K:/Antigravity_Projects/gitbase/pd2s/src/components/DesktopLayout.tsx) | 160 | 데스크탑 전용 2단 분할 레이아웃(좌측 7/12 탭 전환 뷰 vs 우측 5/12 상세 패널 완전 독립 스크롤). |
 | [src/components/MobileLayout.tsx](file:///K:/Antigravity_Projects/gitbase/pd2s/src/components/MobileLayout.tsx) | 99 | 모바일 전용 뷰 컨테이너 (선택된 모바일 탭에 따라 룬 시세 / 커스텀 추적 보드 / 상세 분석 단일 뷰 렌더링). |
-| [src/components/MobileHeader.tsx](file:///K:/Antigravity_Projects/gitbase/pd2s/src/components/MobileHeader.tsx) | 92 | 모바일 전용 슬림 상단바 (슬림 로고, 시즌 14 태그, 원터치 SC/HC 토글, 동기화, `+추가` 버튼). |
-| [src/components/MobileBottomNav.tsx](file:///K:/Antigravity_Projects/gitbase/pd2s/src/components/MobileBottomNav.tsx) | 92 | 모바일 하단 고정 탭바 (룬 시세 / 추적 보드 / 상세 분석 / 설정) 및 Safe-area 패딩 지원. |
-| [src/components/HeaderBar.tsx](file:///K:/Antigravity_Projects/gitbase/pd2s/src/components/HeaderBar.tsx) | 189 | 데스크탑 상단 고정 바. 소프트코어(SC)/하드코어(HC) 전환, 시즌 14 필터, `+ 추적 아이템 추가`, 동기화 버튼. |
+| [src/components/MobileHeader.tsx](file:///K:/Antigravity_Projects/gitbase/pd2s/src/components/MobileHeader.tsx) | 96 | 모바일 전용 상단 헤더 (시스템 상태바 침범 방지 스페이서 `h-[max(env(safe-area-inset-top,0px),1.75rem)]` 적용, blur 전면 제거 단색 고성능 렌더링). |
+| [src/components/MobileBottomNav.tsx](file:///K:/Antigravity_Projects/gitbase/pd2s/src/components/MobileBottomNav.tsx) | 92 | 모바일 하단 고정 탭바 (하단 Safe-area 패딩 지원, blur 전면 제거 단색 고성능 렌더링). |
+| [src/components/HeaderBar.tsx](file:///K:/Antigravity_Projects/gitbase/pd2s/src/components/HeaderBar.tsx) | 189 | 데스크탑 상단 고정 바 (소프트코어/하드코어 전환, 시즌 14 필터, `+ 추적 아이템 추가`, 동기화, blur 제거 단색 렌더링). |
 | [src/components/CustomWatchlistBoard.tsx](file:///K:/Antigravity_Projects/gitbase/pd2s/src/components/CustomWatchlistBoard.tsx) | 242 | 커스텀 세부 조건 아이템 카드 보드. 반응형 카드 그리드, 스탯/소켓/타락 배지, 추정 시세, 최저가, 판매/완료 건수. |
-| [src/components/AddWatchItemModal.tsx](file:///K:/Antigravity_Projects/gitbase/pd2s/src/components/AddWatchItemModal.tsx) | 482 | `+ 추적 아이템 추가` 및 조건 수정 모달. 반응형 패딩 적용으로 모바일 가상 키보드 가림 방지 및 스크롤 최적화. |
+| [src/components/AddWatchItemModal.tsx](file:///K:/Antigravity_Projects/gitbase/pd2s/src/components/AddWatchItemModal.tsx) | 482 | `+ 추적 아이템 추가` 및 조건 수정 모달. 상단 상태바 오버랩 방지 패딩 및 blur 제거 단색 배경 최적화. |
+| [src/components/ApiKeySetupModal.tsx](file:///K:/Antigravity_Projects/gitbase/pd2s/src/components/ApiKeySetupModal.tsx) | 111 | API Key 등록 모달. 상단 상태바 오버랩 방지 패딩 및 blur 제거 단색 배경 최적화. |
 | [src/components/RuneMatrixTable.tsx](file:///K:/Antigravity_Projects/gitbase/pd2s/src/components/RuneMatrixTable.tsx) | 280 | 하이룬 14종 실시간 HR 시세표. 반응형 컬럼 숨김 적용으로 모바일에서도 가로 스크롤 없이 깔끔한 렌더링. |
 | [src/components/RuneBreakCalculator.tsx](file:///K:/Antigravity_Projects/gitbase/pd2s/src/components/RuneBreakCalculator.tsx) | 148 | 선택한 하이룬을 WSS 또는 하위 룬 조합으로 쪼갤 때의 실시간 손익 계산기. |
 | [src/components/ItemDetailPanel.tsx](file:///K:/Antigravity_Projects/gitbase/pd2s/src/components/ItemDetailPanel.tsx) | 162 | 우측 독립 스크롤 심층 분석 컨테이너 (요약 배너 + 날짜별 시세 추이 차트 + 실거래 원문 분석 뷰). |
@@ -78,6 +80,7 @@
 | :--- | :---: | :--- |
 | [.github/workflows/release.yml](file:///K:/Antigravity_Projects/gitbase/pd2s/.github/workflows/release.yml) | 266 | GitHub Actions Windows & Android 동시 자동 릴리즈 파이프라인.<br>- `package.json` 버전 변경 감지 ➡️ 태그 자동 생성<br>- Windows 빌드(포터블 ZIP, 인스톨러 ZIP)<br>- Android 빌드(Ubuntu 러너 내장 공식 SDK/NDK 경로 자동 감지 + CI 비대화형 초기화 + apksigner 자동 서명 APK)<br>- 결함 격리(어느 한 쪽 문제 시에도 가용한 산출물 무조건 릴리즈 및 동시 배포). |
 | [scripts/sync-version.mjs](file:///K:/Antigravity_Projects/gitbase/pd2s/scripts/sync-version.mjs) | 51 | 단일 버전 동기화 스크립트. `package.json`의 버전을 읽어 `src-tauri/tauri.conf.json`과 `src-tauri/Cargo.toml`의 버전을 자동으로 일치시킴 (`npm run version:sync` 또는 빌드 전 자동 실행). |
+| [docs/mobile_status_bar_fix_plan.md](file:///K:/Antigravity_Projects/gitbase/pd2s/docs/mobile_status_bar_fix_plan.md) | 33 | 모바일 상단 시스템 상태바(Status bar) 오버랩 방지 및 UI 성능 최적화 계획서. |
 | [docs/release_fix_plan.md](file:///K:/Antigravity_Projects/gitbase/pd2s/docs/release_fix_plan.md) | 39 | GitHub Actions Windows & Android 동시 자동 릴리즈 결함 복구 계획서 (v1.1.1 릴리즈 누락 원인 분석 및 해결책). |
 | [docs/github_release_plan.md](file:///K:/Antigravity_Projects/gitbase/pd2s/docs/github_release_plan.md) | 58 | GitHub 자동 태그 & Windows·Android 동시 자동 배포 CI/CD 파이프라인 아키텍처 문서. |
 | [docs/android_and_pc_publish_plan.md](file:///K:/Antigravity_Projects/gitbase/pd2s/docs/android_and_pc_publish_plan.md) | 120 | 모바일 반응형 UI 구축 & PC·Android 동시 자동 배포 CI/CD 종합 아키텍처 계획서. |

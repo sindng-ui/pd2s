@@ -42,7 +42,7 @@ export const ApiKeySetupModal: React.FC<ApiKeySetupModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 pt-[max(env(safe-area-inset-top,0px),1rem)]">
       <div className="w-full max-w-md rounded-2xl border border-amber-500/40 bg-[#16131e] p-6 shadow-2xl">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/40 bg-amber-500/20 text-amber-300">
