@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -52,7 +53,7 @@ jobs:
   # -------------------------------------------------------------
   build-windows:
     needs: check-version
-    if: needs.check-version.outputs.should_release == 'true'
+    if: needs.check-version.outputs.should_release == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
     env:
       TAG: ${{ needs.check-version.outputs.tag }}
@@ -104,11 +105,11 @@ jobs:
           path: dist-windows/*.zip
 
   # -------------------------------------------------------------
-  # Job 2: Android 모바일 버전 빌드 (.apk)
+  # Job 2: Android 모바일 버전 빌드 (.apk & 서명)
   # -------------------------------------------------------------
   build-android:
     needs: check-version
-    if: needs.check-version.outputs.should_release == 'true'
+    if: needs.check-version.outputs.should_release == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       TAG: ${{ needs.check-version.outputs.tag }}
@@ -129,22 +130,21 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android SDK & NDK
-        uses: android-actions/setup-android@v3
-
-      - name: Setup Android NDK
+      - name: Setup Android NDK and SDK Environment
         shell: bash
         run: |
-          # 설치된 NDK 확인 또는 최신 NDK 설치
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          # 러너에 사전 설치된 NDK 확인 또는 최신 NDK 경로 탐색
           if [ -d "$ANDROID_HOME/ndk" ] && [ "$(ls -A $ANDROID_HOME/ndk)" ]; then
             NDK_LATEST=$(ls -d $ANDROID_HOME/ndk/* | sort -V | tail -n 1)
           else
             echo "Installing NDK via sdkmanager..."
-            sdkmanager --install "ndks;26.1.10909125"
-            NDK_LATEST="$ANDROID_HOME/ndk/26.1.10909125"
+            $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndks;26.3.11579264"
+            NDK_LATEST="$ANDROID_HOME/ndk/26.3.11579264"
           fi
           echo "Using NDK: $NDK_LATEST"
           echo "NDK_HOME=$NDK_LATEST" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$NDK_LATEST" >> $GITHUB_ENV
 
       - name: Setup Rust toolchain with Android targets
         uses: dtolnay/rust-toolchain@stable
@@ -154,28 +154,44 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
-      - name: Initialize Tauri Android Project
-        run: npx tauri android init
+      - name: Initialize Tauri Android Project (CI Mode)
+        env:
+          CI: true
+        run: npx tauri android init --ci
 
-      - name: Build Tauri Android APK (Universal & Architecture-specific)
+      - name: Generate Release Signing Keystore
+        shell: bash
+        run: |
+          keytool -genkey -v -keystore release.keystore -alias pd2tracker -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass pd2tracker -keypass pd2tracker -dname "CN=pd2tracker, OU=Mobile, O=PD2, L=Seoul, S=Seoul, C=KR"
+
+      - name: Build Tauri Android APK
+        env:
+          CI: true
         run: npx tauri android build --apk
 
-      - name: Package Android APKs
+      - name: Sign Android APKs & Package
         shell: bash
         run: |
           mkdir -p dist-android
-          echo "Searching for built APKs..."
-          find src-tauri/gen/android -name "*.apk"
+          BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
+          echo "Using Android Build Tools: $BUILD_TOOLS_DIR"
 
-          # Universal APK 또는 릴리즈 APK 탐색 및 네이밍 복사
-          FOUND_APKS=$(find src-tauri/gen/android/app/build/outputs/apk -name "*-release*.apk" -o -name "*-signed*.apk" -o -name "*.apk" | grep -v "androidTest" || true)
+          FOUND_APKS=$(find src-tauri/gen/android -name "*.apk" | grep -v "androidTest" || true)
 
           if [ -n "$FOUND_APKS" ]; then
             for apk in $FOUND_APKS; do
               BASENAME=$(basename "$apk")
-              cp "$apk" "dist-android/pd2-tracker-${TAG}-${BASENAME}"
-              echo "Collected APK: dist-android/pd2-tracker-${TAG}-${BASENAME}"
+              TARGET_APK="dist-android/pd2-tracker-${TAG}-${BASENAME}"
+              cp "$apk" "$TARGET_APK"
+
+              echo "Signing $TARGET_APK with apksigner..."
+              $BUILD_TOOLS_DIR/apksigner sign --ks release.keystore --ks-pass pass:pd2tracker --key-pass pass:pd2tracker "$TARGET_APK" || true
+              $BUILD_TOOLS_DIR/apksigner verify "$TARGET_APK" && echo "Verified signature for $TARGET_APK" || true
             done
+          else
+            echo "No APK found in src-tauri/gen/android!"
+            exit 1
           fi
 
           ls -la dist-android
@@ -191,19 +207,21 @@ jobs:
   # -------------------------------------------------------------
   publish-release:
     needs: [check-version, build-windows, build-android]
-    if: needs.check-version.outputs.should_release == 'true'
+    if: always() && needs.check-version.outputs.should_release == 'true' && (needs.build-windows.result == 'success' || needs.build-android.result == 'success')
     runs-on: ubuntu-latest
     steps:
       - name: Create release directory
         run: mkdir release-assets
 
       - name: Download Windows Artifacts
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: windows-assets
           path: release-assets
 
       - name: Download Android Artifacts
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: android-assets
