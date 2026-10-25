@@ -1,0 +1,57 @@
+================================================================================
+PD2 Market Tracker — Phase 1 모바일 반응형 UI/UX 검증 보고서
+일시: 2026-10-25 07:58 (KST)
+검증 도구: Vitest v1.6.0 (단위 테스트) + Puppeteer Headless Chrome (E2E 브라우저 렌더링)
+================================================================================
+
+1. 단위 테스트 결과 (Vitest)
+--------------------------------------------------------------------------------
+✓ src/services/watchlist.test.ts  (3 tests passed)
+✓ src/components/AddWatchItemModal.test.tsx  (1 test passed)
+✓ src/App.test.tsx  (1 test passed)
+
+총 3개 테스트 파일 / 5개 테스트 케이스: 100% PASS (소요 시간 1.9초)
+
+
+2. TypeScript 컴파일 검증
+--------------------------------------------------------------------------------
+명령어: npx tsc --noEmit
+결과: 오류 0건 (No errors)
+
+
+3. 프로덕션 빌드 검증 (Vite)
+--------------------------------------------------------------------------------
+명령어: npm run build
+결과: 빌드 성공 (소요 시간: 10.25초)
+- dist/index.html: 0.54 kB
+- dist/assets/marketAnalysis.worker-EzHbSaPQ.js: 6.40 kB
+- dist/assets/index-gSSTz6so.css: 29.95 kB (gzip: 6.01 kB)
+- dist/assets/index-kg5QyHA5.js: 250.16 kB (gzip: 74.98 kB)
+
+
+4. 실제 브라우저 E2E 반응형 렌더링 검증 (Puppeteer)
+--------------------------------------------------------------------------------
+- 데스크탑 뷰포트 (1440 x 900):
+  * 기존 2단 분할 레이아웃(좌측 7/12 탭 전환 뷰 vs 우측 5/12 상세 패널 완전 독립 스크롤) 100% 완벽 유지
+  * 캡처 이미지: docs/images/desktop_view_1440.png
+
+- 모바일 뷰포트 (390 x 844 - iPhone 14/15 크기):
+  * 상단 슬림 모바일 헤더(로고, S14 배지, SC/HC 토글, 동기화, +추가 버튼) 한 줄 정렬 확인
+  * 하단 고정 탭바(룬 시세, 추적 보드(4), 상세분석, 설정) 터치 인터랙션 정상 확인
+  * 룬 시세표 가로 스크롤 넘침 없이 390px 폭에 완벽 피팅 (불필요한 컬럼 자동 숨김)
+  * 캡처 이미지:
+    - docs/images/mobile_view_runes.png (룬 시세표)
+    - docs/images/mobile_view_custom.png (내 커스텀 추적 보드)
+    - docs/images/mobile_view_detail.png (상세 분석 및 시세 변동 추이 차트)
+
+
+5. 파일 크기 500줄 초과 방지 체크
+--------------------------------------------------------------------------------
+- src/App.tsx: 422줄 (DesktopLayout / MobileLayout 분리로 500줄 이하 준수)
+- src/components/DesktopLayout.tsx: 160줄
+- src/components/MobileLayout.tsx: 99줄
+- src/components/MobileHeader.tsx: 92줄
+- src/components/MobileBottomNav.tsx: 92줄
+- src/hooks/useResponsive.ts: 65줄
+모든 소스 파일 500줄 이하 준수 완료.
+================================================================================

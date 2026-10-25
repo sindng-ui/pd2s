@@ -1,4 +1,4 @@
-name: Auto Tag & Release on Version Change
+name: Auto Tag & Release on Version Change (Windows & Android)
 
 on:
   push:
@@ -10,106 +10,239 @@ permissions:
   contents: write
 
 jobs:
-  check-version-and-release:
-    runs-on: windows-latest
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.check.outputs.should_release }}
+      version: ${{ steps.check.outputs.version }}
+      tag: ${{ steps.check.outputs.tag }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Read package.json version
-        id: pkg_version
-        shell: pwsh
+      - name: Read package.json version and check existing tag
+        id: check
+        shell: bash
         run: |
-          $pkg = Get-Content package.json | ConvertFrom-Json
-          $version = $pkg.version
-          $tag = "v$version"
-          Write-Host "Target Version: $version"
-          Write-Host "Target Tag: $tag"
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v$VERSION"
+          echo "Target Version: $VERSION"
+          echo "Target Tag: $TAG"
 
-          # 기존 태그 목록 확인
-          $existingTag = git tag -l $tag
-          if ($existingTag) {
-            Write-Host "Tag $tag already exists in repository. Skipping release build."
-            echo "SHOULD_RELEASE=false" >> $env:GITHUB_ENV
-          } else {
-            Write-Host "New version detected ($version). Starting release pipeline!"
-            echo "SHOULD_RELEASE=true" >> $env:GITHUB_ENV
-            echo "VERSION=$version" >> $env:GITHUB_ENV
-            echo "TAG=$tag" >> $env:GITHUB_ENV
-          }
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists in repository. Skipping release pipeline."
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          else
+            echo "New version detected ($VERSION). Starting release pipeline!"
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
 
-      - name: Create and push git tag
-        if: env.SHOULD_RELEASE == 'true'
-        shell: pwsh
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag $env:TAG
-          git push origin $env:TAG
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag "$TAG"
+            git push origin "$TAG"
+            echo "Git tag $TAG created and pushed successfully."
+          fi
+
+  # -------------------------------------------------------------
+  # Job 1: Windows PC 버전 빌드 (포터블 .exe & 인스톨러 ZIP)
+  # -------------------------------------------------------------
+  build-windows:
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true'
+    runs-on: windows-latest
+    env:
+      TAG: ${{ needs.check-version.outputs.tag }}
+      VERSION: ${{ needs.check-version.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        if: env.SHOULD_RELEASE == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
       - name: Setup Rust toolchain
-        if: env.SHOULD_RELEASE == 'true'
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install dependencies
-        if: env.SHOULD_RELEASE == 'true'
+      - name: Install npm dependencies
         run: npm ci
 
-      - name: Build Tauri Application
-        if: env.SHOULD_RELEASE == 'true'
+      - name: Build Tauri Windows Application
         run: npx tauri build
 
-      - name: Package release files into ZIP
-        if: env.SHOULD_RELEASE == 'true'
+      - name: Package Windows release files into ZIP
         shell: pwsh
         run: |
-          mkdir dist-zip
+          mkdir dist-windows
 
           # 1. 단일 무설치 포터블 실행 파일 압축
           $portableExe = "src-tauri/target/release/pd2-tracker.exe"
           if (Test-Path $portableExe) {
-            Compress-Archive -Path $portableExe -DestinationPath "dist-zip/pd2-tracker-$($env:TAG)-portable-windows-x64.zip" -Force
+            Compress-Archive -Path $portableExe -DestinationPath "dist-windows/pd2-tracker-$($env:TAG)-portable-windows-x64.zip" -Force
             Write-Host "Compressed portable zip created."
           }
 
           # 2. NSIS 인스톨러 설치 파일 압축
           $installerFiles = Get-ChildItem "src-tauri/target/release/bundle/nsis/*.exe" -ErrorAction SilentlyContinue
           if ($installerFiles) {
-            Compress-Archive -Path $installerFiles.FullName -DestinationPath "dist-zip/pd2-tracker-$($env:TAG)-installer-windows-x64.zip" -Force
+            Compress-Archive -Path $installerFiles.FullName -DestinationPath "dist-windows/pd2-tracker-$($env:TAG)-installer-windows-x64.zip" -Force
             Write-Host "Compressed installer zip created."
           }
 
-          Get-ChildItem dist-zip
+          Get-ChildItem dist-windows
 
-      - name: Publish GitHub Release
-        if: env.SHOULD_RELEASE == 'true'
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-assets
+          path: dist-windows/*.zip
+
+  # -------------------------------------------------------------
+  # Job 2: Android 모바일 버전 빌드 (.apk)
+  # -------------------------------------------------------------
+  build-android:
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.check-version.outputs.tag }}
+      VERSION: ${{ needs.check-version.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK & NDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Android NDK
+        shell: bash
+        run: |
+          # 설치된 NDK 확인 또는 최신 NDK 설치
+          if [ -d "$ANDROID_HOME/ndk" ] && [ "$(ls -A $ANDROID_HOME/ndk)" ]; then
+            NDK_LATEST=$(ls -d $ANDROID_HOME/ndk/* | sort -V | tail -n 1)
+          else
+            echo "Installing NDK via sdkmanager..."
+            sdkmanager --install "ndks;26.1.10909125"
+            NDK_LATEST="$ANDROID_HOME/ndk/26.1.10909125"
+          fi
+          echo "Using NDK: $NDK_LATEST"
+          echo "NDK_HOME=$NDK_LATEST" >> $GITHUB_ENV
+
+      - name: Setup Rust toolchain with Android targets
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Initialize Tauri Android Project
+        run: npx tauri android init
+
+      - name: Build Tauri Android APK (Universal & Architecture-specific)
+        run: npx tauri android build --apk
+
+      - name: Package Android APKs
+        shell: bash
+        run: |
+          mkdir -p dist-android
+          echo "Searching for built APKs..."
+          find src-tauri/gen/android -name "*.apk"
+
+          # Universal APK 또는 릴리즈 APK 탐색 및 네이밍 복사
+          FOUND_APKS=$(find src-tauri/gen/android/app/build/outputs/apk -name "*-release*.apk" -o -name "*-signed*.apk" -o -name "*.apk" | grep -v "androidTest" || true)
+
+          if [ -n "$FOUND_APKS" ]; then
+            for apk in $FOUND_APKS; do
+              BASENAME=$(basename "$apk")
+              cp "$apk" "dist-android/pd2-tracker-${TAG}-${BASENAME}"
+              echo "Collected APK: dist-android/pd2-tracker-${TAG}-${BASENAME}"
+            done
+          fi
+
+          ls -la dist-android
+
+      - name: Upload Android Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-assets
+          path: dist-android/*.apk
+
+  # -------------------------------------------------------------
+  # Job 3: Windows + Android 일괄 동시 Publish (GitHub Release)
+  # -------------------------------------------------------------
+  publish-release:
+    needs: [check-version, build-windows, build-android]
+    if: needs.check-version.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create release directory
+        run: mkdir release-assets
+
+      - name: Download Windows Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-assets
+          path: release-assets
+
+      - name: Download Android Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: android-assets
+          path: release-assets
+
+      - name: Inspect Release Artifacts
+        run: ls -la release-assets
+
+      - name: Publish GitHub Release (Windows & Android Simultaneous Release)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.TAG }}
-          name: PD2 시세 & 실거래 트래커 ${{ env.TAG }}
+          tag_name: ${{ needs.check-version.outputs.tag }}
+          name: PD2 시세 & 실거래 트래커 ${{ needs.check-version.outputs.tag }} (PC & Android 동시 릴리즈)
           body: |
-            ## Project Diablo 2 - 시세 & 거래 도우미 ${{ env.TAG }}
+            ## Project Diablo 2 — 시세 & 실거래 도우미 ${{ needs.check-version.outputs.tag }}
 
-            ### 📦 다운로드 안내 (ZIP 압축 배포)
-            웹 브라우저의 `.exe` 직접 다운로드 차단/경고 문제를 방지하기 위해 `.zip` 압축 파일로 제공됩니다.
-            다운로드 후 압축을 풀고 실행하시면 됩니다.
-
-            - **무설치 포터블 버전**: `pd2-tracker-${{ env.TAG }}-portable-windows-x64.zip`
-              (압축 해제 후 `pd2-tracker.exe`를 바로 더블클릭하여 실행)
-            - **바탕화면 바로가기 설치 버전**: `pd2-tracker-${{ env.TAG }}-installer-windows-x64.zip`
-              (설치 마법사를 통해 편리하게 설치)
+            이번 버전부터 **PC(Windows) 버전**과 함께 **안드로이드(Android) 모바일 버전**이 공식 지원됩니다!
 
             ---
-            *본 릴리즈는 `package.json`의 버전 변경에 의해 GitHub Actions로 자동 빌드 및 배포되었습니다.*
+
+            ### 💻 PC (Windows) 다운로드 안내 (.zip 압축 배포)
+            웹 브라우저의 `.exe` 직접 다운로드 차단/보안 경고 문제를 방지하기 위해 `.zip` 압축 파일로 제공됩니다.
+            다운로드 후 압축을 풀고 실행하시면 됩니다.
+
+            - **무설치 포터블 버전**: `pd2-tracker-${{ needs.check-version.outputs.tag }}-portable-windows-x64.zip`
+              *(압축 해제 후 `pd2-tracker.exe`를 바로 더블클릭하여 실행)*
+            - **바탕화면 바로가기 설치 버전**: `pd2-tracker-${{ needs.check-version.outputs.tag }}-installer-windows-x64.zip`
+              *(설치 마법사를 통해 편리하게 바탕화면에 설치)*
+
+            ---
+
+            ### 📱 모바일 (Android) 다운로드 안내 (.apk 설치 파일)
+            스마트폰에서 언제 어디서나 하이룬 시세표와 실거래 원문 분석을 한손으로 확인하실 수 있습니다.
+
+            - **안드로이드 설치 파일**: `pd2-tracker-${{ needs.check-version.outputs.tag }}-*.apk`
+              *(스마트폰 브라우저로 다운로드 후 터치하여 설치 / '출처를 알 수 없는 앱 설치 허용')*
+
+            ---
+            *본 릴리즈는 `package.json`의 버전 변경에 의해 GitHub Actions로 Windows와 Android가 동시에 자동 빌드 및 배포되었습니다.*
           files: |
-            dist-zip/*.zip
+            release-assets/*
           generate_release_notes: true

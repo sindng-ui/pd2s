@@ -180,8 +180,8 @@ export const AddWatchItemModal: React.FC<AddWatchItemModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-amber-500/30 bg-[#15131c] p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-2 sm:p-4 backdrop-blur-sm">
+      <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-amber-500/30 bg-[#15131c] p-4 sm:p-6 shadow-2xl">
         {/* 모달 헤더 */}
         <div className="flex items-center justify-between border-b border-gray-800 pb-4">
           <div className="flex items-center gap-2">

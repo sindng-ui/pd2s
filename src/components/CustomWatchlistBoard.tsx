@@ -38,24 +38,24 @@ export const CustomWatchlistBoard: React.FC<CustomWatchlistBoardProps> = React.m
     return (
       <div className="shrink-0 rounded-xl border border-amber-500/25 bg-[#15131b] shadow-lg overflow-hidden">
         {/* 헤더 */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-800 bg-[#1c1824] px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-800 bg-[#1c1824] px-3 sm:px-4 py-2.5 sm:py-3">
           <div className="flex items-center gap-2">
-            <SlidersHorizontal className="h-4 w-4 text-amber-400" />
-            <h2 className="text-sm font-bold text-amber-100">
-              내 커스텀 세부 조건 추적 아이템 ({watchlist.length}개)
+            <SlidersHorizontal className="h-4 w-4 text-amber-400 shrink-0" />
+            <h2 className="text-xs sm:text-sm font-bold text-amber-100">
+              내 커스텀 추적 아이템 ({watchlist.length}개)
             </h2>
-            <span className="rounded bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-300 border border-amber-500/20">
-              예: 샤코 3스킬 2소켓 등 원하는 옵션 조합별 시세 & 실거래 추적
+            <span className="rounded bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-300 border border-amber-500/20 hidden sm:inline">
+              옵션 조합별 실시간 시세 & 실거래 추적
             </span>
           </div>
 
           <button
             type="button"
             onClick={onOpenAddModal}
-            className="flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-gray-950 transition hover:bg-amber-400"
+            className="flex items-center gap-1 rounded-lg bg-amber-500 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-gray-950 transition hover:bg-amber-400 active:scale-95"
           >
-            <Plus className="h-4 w-4 stroke-[2.5]" />
-            + 아이템 추가
+            <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 stroke-[2.5]" />
+            <span>+ 아이템 추가</span>
           </button>
         </div>
 

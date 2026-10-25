@@ -1,7 +1,7 @@
 // C:/AntigravityWorkspace/pd2s/src/components/ApiKeySetupModal.tsx
 import React, { useState } from 'react';
 import { KeyRound, ExternalLink, ShieldCheck, Check } from 'lucide-react';
-import { open } from '@tauri-apps/api/shell';
+import { openExternalUrl } from '../utils/tauriBridge';
 import { saveStoredApiKey } from '../services/storageService';
 
 interface ApiKeySetupModalProps {
@@ -22,12 +22,7 @@ export const ApiKeySetupModal: React.FC<ApiKeySetupModalProps> = ({
 
   const handleOpenLink = async (e: React.MouseEvent) => {
     e.preventDefault();
-    const url = 'https://pd2trader.com/developers/api-keys';
-    try {
-      await open(url);
-    } catch {
-      window.open(url, '_blank');
-    }
+    await openExternalUrl('https://pd2trader.com/developers/api-keys');
   };
 
   const handleSubmit = (e: React.FormEvent) => {

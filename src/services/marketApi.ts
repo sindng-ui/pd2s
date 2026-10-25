@@ -18,6 +18,7 @@ import {
   appendStoredSnapshot,
   mergeStoredSoldListings,
 } from './storageService';
+import { tauriFetch } from '../utils/tauriBridge';
 
 const BASE_URL = 'https://pd2trader.com';
 
@@ -26,7 +27,7 @@ async function pd2ClientFetch<T>(
   apiKey: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const res = await fetch(`${BASE_URL}${endpoint}`, {
+  const res = await tauriFetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers: {
       'X-API-Key': apiKey,
